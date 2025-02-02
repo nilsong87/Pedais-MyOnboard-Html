@@ -1,4 +1,4 @@
-import * as Tone from './libs/tone.js'; // Ou o caminho correto para o Tone.js
+import * as Tone from './libs/tone.js';
 
 // --- Configurações Iniciais ---
 let audioContext;
@@ -89,23 +89,6 @@ const pedalData = [
                     { value: 'emanacy', label: 'Emanacy' },
                     { value: 'pizzo', label: 'Pizzo' }
                 ], param: 'simulationType'
-            }
-        ],
-        initialSettings: { reverb: 0.5, level: 0.5, body: 0.5, top: 0.5, simulationType: 'standard' }
-    },
-    {
-        id: 'chorus-ce2w',
-        name: 'Chorus CE-2w',
-        imageUrl: 'img/chorus-ce2w.png',
-        controls: [
-            { id: 'rate-chorus', label: 'Rate', type: 'range', min: 0, max: 1, step: 0.01, param: 'rate' },
-            { id: 'depth-chorus', label: 'Depth', type: 'range', min: 0, max: 1, step: 0.01, param: 'depth' },
-            {
-                id: 'mode-chorus', label: 'Mode', type: 'select', options: [
-                    { value: 's', label: 'S' },
-                    { value: 'ce', label: 'CE' },
-                    { value: '-1', label: '-1' }
-                ], param: 'mode'
             }
         ],
         initialSettings: { rate: 0.5, depth: 0.5, mode: 's' }
@@ -384,11 +367,11 @@ function addPedalToBoard(pedalId) {
     toggleButton.onclick = () => {
         const isActive = pedalElement.classList.contains('active');
         if (isActive) {
-            deactivatePedal(pedalId);
+            deactivatePedal(pedal.id);
             pedalElement.classList.remove('active');
             toggleButton.textContent = 'Ligar';
         } else {
-            activatePedal(pedalId);
+            activatePedal(pedal.id);
             pedalElement.classList.add('active');
             toggleButton.textContent = 'Desligar';
         }
@@ -407,14 +390,16 @@ function removePedalFromBoard(pedalId) {
     }
 }
 
-
 function initializePedal(pedalId) {
     const pedal = pedalData.find(p => p.id === pedalId);
-    if (!pedal) return;
+    if (!pedal) {
+        console.error(`Pedal with ID '${pedalId}' not found.`);
+        return;
+    }
 
     // Verifica se o Tone.js já foi inicializado
     if (Tone.context.state !== 'running') {
-        console.error('Tone.js não foi inicializado. Chame initTone() primeiro.');
+        console.error('Tone.js is not initialized. Call initAudio() first.');
         return;
     }
 
@@ -427,32 +412,56 @@ function initializePedal(pedalId) {
     // Exemplo de criação de nós de áudio com Tone.js
     switch (pedalId) {
         case 'super-overdrive':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass').connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.drive).connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass');
+            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.drive);
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.filter.connect(pedalInstance.nodes.distortion);
+            pedalInstance.nodes.distortion.connect(outputNode);
             break;
         case 'distortion':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass').connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.distortion).connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass');
+            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.distortion);
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.filter.connect(pedalInstance.nodes.distortion);
+            pedalInstance.nodes.distortion.connect(outputNode);
             break;
         case 'metal-zone':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.low = new Tone.Filter(pedal.initialSettings.low, 'lowshelf').connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.high = new Tone.Filter(pedal.initialSettings.high, 'highshelf').connect(pedalInstance.nodes.low);
-            pedalInstance.nodes.middle = new Tone.Filter(pedal.initialSettings.middle, 'peaking').connect(pedalInstance.nodes.high);
-            pedalInstance.nodes.midFreq = new Tone.BiquadFilter(pedal.initialSettings.midFreq, 'peaking').connect(pedalInstance.nodes.middle);
-            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.dist).connect(pedalInstance.nodes.midFreq);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.low = new Tone.BiquadFilter(pedal.initialSettings.low, 'lowshelf');
+            pedalInstance.nodes.high = new Tone.BiquadFilter(pedal.initialSettings.high, 'highshelf');
+            pedalInstance.nodes.middle = new Tone.BiquadFilter(pedal.initialSettings.middle, 'peaking');
+            pedalInstance.nodes.midFreq = new Tone.BiquadFilter(pedal.initialSettings.midFreq, 'peaking');
+            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.dist);
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.low);
+            pedalInstance.nodes.low.connect(pedalInstance.nodes.high);
+            pedalInstance.nodes.high.connect(pedalInstance.nodes.middle);
+            pedalInstance.nodes.middle.connect(pedalInstance.nodes.midFreq);
+            pedalInstance.nodes.midFreq.connect(pedalInstance.nodes.distortion);
+            pedalInstance.nodes.distortion.connect(outputNode);
             break;
         case 'metalcore':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.low = new Tone.Filter(pedal.initialSettings.low, 'lowshelf').connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.high = new Tone.Filter(pedal.initialSettings.high, 'highshelf').connect(pedalInstance.nodes.low);
-            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.distortion).connect(pedalInstance.nodes.high);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.low = new Tone.BiquadFilter(pedal.initialSettings.low, 'lowshelf');
+            pedalInstance.nodes.high = new Tone.BiquadFilter(pedal.initialSettings.high, 'highshelf');
+            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.distortion);
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.low);
+            pedalInstance.nodes.low.connect(pedalInstance.nodes.high);
+            pedalInstance.nodes.high.connect(pedalInstance.nodes.distortion);
+            pedalInstance.nodes.distortion.connect(outputNode);
             break;
         case 'compression-sustainer':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass').connect(pedalInstance.nodes.gain);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass');
             // Compressor é um pouco mais complexo e pode não ter um mapeamento direto para um único parâmetro
             // Aqui você pode precisar ajustar os parâmetros do compressor com base em 'attack'
             pedalInstance.nodes.compressor = new Tone.Compressor({
@@ -461,36 +470,55 @@ function initializePedal(pedalId) {
                 threshold: -24, // Um valor padrão, ajuste conforme necessário
                 ratio: 12, // Um valor padrão, ajuste conforme necessário
                 knee: 30 // Um valor padrão, ajuste conforme necessário
-            }).connect(pedalInstance.nodes.filter);
+            });
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.filter.connect(pedalInstance.nodes.compressor);
+            pedalInstance.nodes.compressor.connect(outputNode);
             break;
         case 'acoustic-simulator':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.reverb = new Tone.Reverb(pedal.initialSettings.reverb).connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.body, 'bandpass').connect(pedalInstance.nodes.reverb);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.reverb = new Tone.Reverb(pedal.initialSettings.reverb);
+            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.body, 'bandpass');
             // 'top' pode ser mapeado para um filtro highshelf para simular a clareza do som acústico
-            pedalInstance.nodes.highShelf = new Tone.Filter(pedal.initialSettings.top, 'highshelf').connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.highShelf = new Tone.Filter(pedal.initialSettings.top, 'highshelf');
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.reverb);
+            pedalInstance.nodes.reverb.connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.filter.connect(pedalInstance.nodes.highShelf);
+            pedalInstance.nodes.highShelf.connect(outputNode);
             break;
         case 'chorus-ce2w':
             pedalInstance.nodes.chorus = new Tone.Chorus({
                 frequency: pedal.initialSettings.rate, // 'rate' mapeado para 'frequency'
                 depth: pedal.initialSettings.depth,
                 type: pedal.initialSettings.mode // 'mode' pode ser mapeado para 'type' se usarmos 'sine', 'square', etc.
-            }).connect(outputNode);
+            });
+
+            // Conectando os nós
+            pedalInstance.nodes.chorus.connect(outputNode);
             break;
         case 'super-chorus':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.eLevel).connect(outputNode);
-            pedalInstance.nodes.eq = new Tone.EQ3(pedal.initialSettings.eqLoHi, 0, 0).connect(pedalInstance.nodes.gain); // EQ para low/high
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.eLevel);
+            pedalInstance.nodes.eq = new Tone.EQ3(pedal.initialSettings.eqLoHi, 0, 0); // EQ para low/high
             pedalInstance.nodes.chorus = new Tone.Chorus({
                 frequency: pedal.initialSettings.rate,
                 depth: pedal.initialSettings.depth
-            }).connect(pedalInstance.nodes.eq);
+            });
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.eq);
+            pedalInstance.nodes.eq.connect(pedalInstance.nodes.chorus);
+            pedalInstance.nodes.chorus.connect(outputNode);
             break;
         case 'digital-delay':
             pedalInstance.nodes.feedbackDelay = new Tone.FeedbackDelay({
                 delayTime: pedal.initialSettings.dTime,
                 feedback: pedal.initialSettings.fBack
-            }).connect(outputNode);
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.eLevel).connect(pedalInstance.nodes.feedbackDelay);
+            });
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.eLevel);
 
             // Mapeamento do parâmetro 'mode' para diferentes configurações de delay
             switch (pedal.initialSettings.mode) {
@@ -507,6 +535,7 @@ function initializePedal(pedalId) {
                     pedalInstance.nodes.feedbackDelay.delayTime.value = 0.05;
                     break;
                 case 'hold':
+                    // Implementação específica para o modo 'hold'
                     break;
                 case 'modulate':
                     pedalInstance.nodes.feedbackDelay.delayTime.value = 0.1;
@@ -518,23 +547,38 @@ function initializePedal(pedalId) {
                     pedalInstance.nodes.feedbackDelay.delayTime.value = 0.2;
                     break;
             }
+
+            // Conectando os nós
+            pedalInstance.nodes.feedbackDelay.connect(pedalInstance.nodes.gain);
+            pedalInstance.nodes.gain.connect(outputNode);
             break;
         case 'phase-shifter':
             pedalInstance.nodes.phaser = new Tone.Phaser({
                 frequency: pedal.initialSettings.rate,
                 depth: pedal.initialSettings.depth,
                 baseFrequency: pedal.initialSettings.res
-            }).connect(outputNode);
+            });
+
+            // Conectando os nós
+            pedalInstance.nodes.phaser.connect(outputNode);
             break;
         case 'synthesizer-sy1':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.direct).connect(outputNode);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.direct);
             // Efeito synth é complexo e pode exigir uma combinação de osciladores, filtros, envelopes, etc.
             // Aqui você precisará de uma lógica mais detalhada para mapear os parâmetros para o efeito synth desejado
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(outputNode);
             break;
         case 'blues-driver':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass').connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.gain).connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass');
+            pedalInstance.nodes.distortion = new Tone.Distortion(pedal.initialSettings.gain);
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.filter.connect(pedalInstance.nodes.distortion);
+            pedalInstance.nodes.distortion.connect(outputNode);
             break;
         case 'equalizer-ge7':
             // Equalizer requer uma cadeia de filtros biquad, um para cada banda de frequência
@@ -564,7 +608,10 @@ function initializePedal(pedalId) {
                 pedalInstance.nodes.filters[i].connect(pedalInstance.nodes.filters[i + 1]);
             }
 
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(pedalInstance.nodes.filters[0]);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.filters[0]);
             pedalInstance.nodes.filters[pedalInstance.nodes.filters.length - 1].connect(outputNode);
             break;
         case 'tremolo-tr2':
@@ -572,12 +619,15 @@ function initializePedal(pedalId) {
                 frequency: pedal.initialSettings.rate,
                 depth: pedal.initialSettings.depth,
                 type: pedal.initialSettings.wave
-            }).connect(outputNode).start();
+            }).start();
+
+            // Conectando os nós
+            pedalInstance.nodes.tremolo.connect(outputNode);
             break;
         case 'fuzz-fz1w':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass').connect(pedalInstance.nodes.gain);
-            pedalInstance.nodes.fuzz = new Tone.Distortion(pedal.initialSettings.fuzz).connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.filter = new Tone.Filter(pedal.initialSettings.tone, 'lowpass');
+            pedalInstance.nodes.fuzz = new Tone.Distortion(pedal.initialSettings.fuzz);
 
             // Mapeamento do parâmetro 'mode' para diferentes configurações de fuzz
             switch (pedal.initialSettings.mode) {
@@ -588,14 +638,23 @@ function initializePedal(pedalId) {
                     pedalInstance.nodes.fuzz.distortion = 0.9;
                     break;
             }
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.filter);
+            pedalInstance.nodes.filter.connect(pedalInstance.nodes.fuzz);
+            pedalInstance.nodes.fuzz.connect(outputNode);
             break;
         case 'acoustic-preamp-ad2':
-            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level).connect(outputNode);
-            pedalInstance.nodes.reverb = new Tone.Reverb(pedal.initialSettings.ambience).connect(pedalInstance.nodes.gain);
-            // 'notch' pode ser implementado com um filtro notch ou um equalizador paramétrico
-            pedalInstance.nodes.notchFilter = new Tone.BiquadFilter(pedal.initialSettings.notch, 'notch').connect(pedalInstance.nodes.reverb);
-            // 'resonance' pode ser simulado com um filtro ou um efeito de ressonância
-            pedalInstance.nodes.resonance = new Tone.BiquadFilter(pedal.initialSettings.resonance, 'lowpass').connect(pedalInstance.nodes.notchFilter);
+            pedalInstance.nodes.gain = new Tone.Gain(pedal.initialSettings.level);
+            pedalInstance.nodes.reverb = new Tone.Reverb(pedal.initialSettings.ambience);
+            pedalInstance.nodes.notchFilter = new Tone.BiquadFilter(pedal.initialSettings.notch, 'notch');
+            pedalInstance.nodes.resonance = new Tone.BiquadFilter(pedal.initialSettings.resonance, 'lowpass');
+
+            // Conectando os nós
+            pedalInstance.nodes.gain.connect(pedalInstance.nodes.reverb);
+            pedalInstance.nodes.reverb.connect(pedalInstance.nodes.notchFilter);
+            pedalInstance.nodes.notchFilter.connect(pedalInstance.nodes.resonance);
+            pedalInstance.nodes.resonance.connect(outputNode);
             break;
         default:
             console.warn(`Pedal ${pedalId} não possui configuração de áudio definida.`);
@@ -607,22 +666,48 @@ function initializePedal(pedalId) {
 
 function activatePedal(pedalId) {
     const pedal = availablePedals.find(p => p.id === pedalId);
-    if (!pedal) return;
+    if (!pedal) {
+        console.warn(`Pedal ${pedalId} não encontrado em availablePedals.`);
+        return;
+    }
 
-    // Conectar o pedal à cadeia de áudio
-    inputNode.connect(pedal.nodes[Object.keys(pedal.nodes)[0]]); // Conecta ao primeiro nó do pedal
+    // Verifica se o inputNode está conectado a algum nó antes de tentar desconectá-lo
+    if (inputNode) {
+        inputNode.disconnect(); // Desconecta de qualquer nó anterior
+        // Conecta a entrada ao primeiro nó do pedal
+        inputNode.connect(pedal.nodes[Object.keys(pedal.nodes)[0]]);
+        console.log(`Pedal ${pedalId} ativado: inputNode conectado a ${Object.keys(pedal.nodes)[0]}.`);
+    } else {
+        console.warn('inputNode não está definido.');
+    }
+
     const lastNodeKey = Object.keys(pedal.nodes)[Object.keys(pedal.nodes).length - 1];
+
+    // Verifica se o último nó do pedal está conectado a algum nó antes de tentar desconectá-lo
+    if (pedal.nodes[lastNodeKey] && pedal.nodes[lastNodeKey].numberOfOutputs > 0) {
+        pedal.nodes[lastNodeKey].disconnect();
+    }
+
     pedal.nodes[lastNodeKey].connect(outputNode); // Conecta o último nó do pedal à saída
+    console.log(`Pedal ${pedalId} ativado: ${lastNodeKey} conectado a outputNode.`);
 }
 
 function deactivatePedal(pedalId) {
     const pedal = availablePedals.find(p => p.id === pedalId);
-    if (!pedal) return;
+    if (!pedal) {
+        console.warn(`Pedal ${pedalId} não encontrado em availablePedals.`);
+        return;
+    }
 
     // Desconectar o pedal da cadeia de áudio
-    inputNode.disconnect(pedal.nodes[Object.keys(pedal.nodes)[0]]);
+    if (inputNode) {
+        inputNode.disconnect(pedal.nodes[Object.keys(pedal.nodes)[0]]);
+    }
+
     const lastNodeKey = Object.keys(pedal.nodes)[Object.keys(pedal.nodes).length - 1];
-    pedal.nodes[lastNodeKey].disconnect(outputNode);
+    if (pedal.nodes[lastNodeKey]) {
+        pedal.nodes[lastNodeKey].disconnect();
+    }
 }
 
 // Função para atualizar os controles do pedal
@@ -679,20 +764,17 @@ function updatePedalControl(pedalId, controlId, value) {
             break;
         case 'low-metalzone':
             if (pedal.nodes.low) {
-                pedal.nodes.low.frequency.value = value * 800;
-                pedal.nodes.low.gain.value = value * 50;// Ajuste conforme necessário para o efeito desejado
+                pedal.nodes.low.gain.value = value; // Ajuste conforme necessário para o efeito desejado
             }
             break;
         case 'high-metalzone':
             if (pedal.nodes.high) {
-                pedal.nodes.high.frequency.value = value * 5000;
-                pedal.nodes.high.gain.value = value * 50;  // Ajuste conforme necessário para o efeito desejado
+                pedal.nodes.high.gain.value = value; // Ajuste conforme necessário para o efeito desejado
             }
             break;
         case 'middle-metalzone':
             if (pedal.nodes.middle) {
-                pedal.nodes.middle.frequency.value = value * 2000;
-                pedal.nodes.middle.gain.value = value * 50; // Ajuste conforme necessário para o efeito desejado
+                pedal.nodes.middle.gain.value = value; // Ajuste conforme necessário para o efeito desejado
             }
             break;
         case 'mid-freq-metalzone':
@@ -775,7 +857,7 @@ function updatePedalControl(pedalId, controlId, value) {
             break;
         case 'depth-chorus':
             if (pedal.nodes.chorus) {
-                pedal.nodes.chorus.depth.value = value;
+                pedal.pedal.nodes.chorus.depth.value = value;
             }
             break;
         case 'mode-chorus':
@@ -1199,8 +1281,8 @@ function reconnectInputToPedals() {
             inputNode.connect(firstPedal.nodes[Object.keys(firstPedal.nodes)[0]]);
         }
     } else {
-        // Se não houver pedais selecionados, conecta a entrada diretamente à saída
-        inputNode.connect(outputNode);
+        // Se não houver pedais selecionados, conecta a entrada diretamente ao amplificador
+        inputNode.connect(ampNode);
     }
 }
 
@@ -1247,46 +1329,46 @@ function startMetronome() {
     const bpm = parseInt(document.getElementById('bpm').value);
     const interval = 60 / bpm;
 
-// Inicia o Tone.Transport para controlar o tempo
-Tone.Transport.start();
+    // Inicia o Tone.Transport para controlar o tempo
+    Tone.Transport.start();
 
-// Agenda o som do metrônomo para tocar em loop
-metronomeIntervalId = Tone.Transport.scheduleRepeat((time) => {
-    metronome.triggerAttackRelease("C1", "8n", time);
-}, interval);
+    // Agenda o som do metrônomo para tocar em loop
+    metronomeIntervalId = Tone.Transport.scheduleRepeat((time) => {
+        metronome.triggerAttackRelease("C1", "8n", time);
+    }, interval);
 
-isMetronomeRunning = true;
-document.getElementById('startMetronome').textContent = '⏸️';
+    isMetronomeRunning = true;
+    document.getElementById('startMetronome').textContent = '⏸️';
 }
 
 function stopMetronome() {
-// Para o agendamento do metrônomo
-Tone.Transport.clear(metronomeIntervalId);
-metronomeIntervalId = null; // Limpa o ID do intervalo
+    // Para o agendamento do metrônomo
+    Tone.Transport.clear(metronomeIntervalId);
+    metronomeIntervalId = null; // Limpa o ID do intervalo
 
-// Para o Tone.Transport
-Tone.Transport.stop();
+    // Para o Tone.Transport
+    Tone.Transport.stop();
 
-isMetronomeRunning = false;
-document.getElementById('startMetronome').textContent = '▶️';
+    isMetronomeRunning = false;
+    document.getElementById('startMetronome').textContent = '▶️';
 }
 
 document.getElementById('startMetronome').addEventListener('click', () => {
-if (isMetronomeRunning) {
-    stopMetronome();
-} else {
-    startMetronome();
-}
+    if (isMetronomeRunning) {
+        stopMetronome();
+    } else {
+        startMetronome();
+    }
 });
 
 document.getElementById('bpm').addEventListener('input', () => {
-const bpm = document.getElementById('bpm').value;
-Tone.Transport.bpm.value = bpm; // Atualiza o BPM do Tone.Transport
-// Atualiza o BPM do Tone.Transport se o metrônomo estiver rodando
-if (isMetronomeRunning) {
-    stopMetronome();
-    startMetronome();
-}
+    const bpm = document.getElementById('bpm').value;
+    Tone.Transport.bpm.value = bpm; // Atualiza o BPM do Tone.Transport
+    // Atualiza o BPM do Tone.Transport se o metrônomo estiver rodando
+    if (isMetronomeRunning) {
+        stopMetronome();
+        startMetronome();
+    }
 });
 
 // --- Afinador ---
@@ -1296,145 +1378,145 @@ let tunerStream;
 
 // Conecte a saída do amplificador ao analisador do afinador
 if (ampNode) {
-ampNode.connect(tuner);
+    ampNode.connect(tuner);
 } else {
-console.warn("ampNode não está definido. O afinador pode não funcionar corretamente.");
+    console.warn("ampNode não está definido. O afinador pode não funcionar corretamente.");
 }
 
 const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 const tunings = {
-"EADGBE": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63], // Standard
-"D#G#C#F#A#D#": [77.78, 103.83, 138.59, 185.00, 233.08, 311.13], // Eb Standard
-"C#G#C#F#A#D#": [69.30, 103.83, 138.59, 185.00, 233.08, 311.13],// Drop C#
-"DGCFAD": [73.42, 98.00, 130.81, 174.61, 220.00, 293.66], // Drop D
-"CGCFAD": [65.41, 98.00, 130.81, 174.61, 220.00, 293.66], // Drop C
-"C#F#BEG#C#": [69.30, 92.50, 123.47, 174.61, 207.65, 277.18],// Open C#
-"BF#BEG#C#": [61.74, 92.50, 123.47, 174.61, 207.65, 277.18] // Open B
+    "EADGBE": [82.41, 110.00, 146.83, 196.00, 246.94, 329.63], // Standard
+    "D#G#C#F#A#D#": [77.78, 103.83, 138.59, 185.00, 233.08, 311.13], // Eb Standard
+    "C#G#C#F#A#D#": [69.30, 103.83, 138.59, 185.00, 233.08, 311.13],// Drop C#
+    "DGCFAD": [73.42, 98.00, 130.81, 174.61, 220.00, 293.66], // Drop D
+    "CGCFAD": [65.41, 98.00, 130.81, 174.61, 220.00, 293.66], // Drop C
+    "C#F#BEG#C#": [69.30, 92.50, 123.47, 174.61, 207.65, 277.18],// Open C#
+    "BF#BEG#C#": [61.74, 92.50, 123.47, 174.61, 207.65, 277.18] // Open B
 };
 
 let selectedTuning = "EADGBE"; // Afinação padrão
 
 async function startTuner() {
-if (tunerStream) {
-    // Se o afinador já estiver rodando, apenas retorna
-    return;
-}
-const tunerOutput = document.getElementById('tuner-output');
-try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    tunerStream = audioContext.createMediaStreamSource(stream);
-    tunerStream.connect(tuner);
+    if (tunerStream) {
+        // Se o afinador já estiver rodando, apenas retorna
+        return;
+    }
+    const tunerOutput = document.getElementById('tuner-output');
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tunerStream = audioContext.createMediaStreamSource(stream);
+        tunerStream.connect(tuner);
 
-    setInterval(() => {
-        const frequency = getFundamentalFrequency(tuner.getValue(), audioContext.sampleRate);
-        if (frequency) {
-            const note = getNoteFromFrequency(frequency);
-            const detune = getDetune(frequency, note);
-            tunerOutput.innerHTML = `Nota: ${noteStrings[note % 12]} - Detune: ${detune.toFixed(2)} cents`;
-        }
-    }, 100);
-} catch (err) {
-    console.error('Erro ao acessar o microfone:', err);
-    tunerOutput.innerHTML = 'Erro ao acessar o microfone.';
-}
+        setInterval(() => {
+            const frequency = getFundamentalFrequency(tuner.getValue(), audioContext.sampleRate);
+            if (frequency) {
+                const note = getNoteFromFrequency(frequency);
+                const detune = getDetune(frequency, note);
+                tunerOutput.innerHTML = `Nota: ${noteStrings[note % 12]} - Detune: ${detune.toFixed(2)} cents`;
+            }
+        }, 100);
+    } catch (err) {
+        console.error('Erro ao acessar o microfone:', err);
+        tunerOutput.innerHTML = 'Erro ao acessar o microfone.';
+    }
 }
 
 function stopTuner() {
-if (tunerStream) {
-    tunerStream.disconnect(tuner);
-    tunerStream = null; // Define tunerStream como null para indicar que o afinador foi parado
-}
+    if (tunerStream) {
+        tunerStream.disconnect(tuner);
+        tunerStream = null; // Define tunerStream como null para indicar que o afinador foi parado
+    }
 }
 
 function getNoteFromFrequency(frequency) {
-const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
-return Math.round(noteNum) + 69;
+    const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
+    return Math.round(noteNum) + 69;
 }
 
 function getDetune(freq, note) {
-const minFreq = 440 * Math.pow(2, (note - 69) / 12);
-const maxFreq = 440 * Math.pow(2, (note - 68) / 12);
-return Math.floor(1200 * Math.log(freq / minFreq) / Math.log(2));
+    const minFreq = 440 * Math.pow(2, (note - 69) / 12);
+    const maxFreq = 440 * Math.pow(2, (note - 68) / 12);
+    return Math.floor(1200 * Math.log(freq / minFreq) / Math.log(2));
 }
 
 function getFundamentalFrequency(buffer, sampleRate) {
-let SIZE = buffer.length;
-let rms = 0;
+    let SIZE = buffer.length;
+    let rms = 0;
 
-for (let i = 0; i < SIZE; i++) {
-    const val = buffer[i];
-    rms += val * val;
-}
-
-rms = Math.sqrt(rms / SIZE);
-if (rms < 0.01) {
-    return null;
-}
-
-let r1 = 0, r2 = SIZE - 1, threshold = 0.2;
-for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buffer[i]) < threshold) {
-        r1 = i;
-        break;
+    for (let i = 0; i < SIZE; i++) {
+        const val = buffer[i];
+        rms += val * val;
     }
-}
 
-for (let i = 1; i < SIZE / 2; i++) {
-    if (Math.abs(buffer[SIZE - i]) < threshold) {
-        r2 = SIZE - i;
-        break;
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.01) {
+        return null;
     }
-}
 
-buffer = buffer.subarray(r1, r2);
-SIZE = buffer.length;
-
-const c = new Array(SIZE).fill(0);
-for (let i = 0; i < SIZE; i++) {
-    for (let j = 0; j < SIZE - i; j++) {
-        c[i] = c[i] + buffer[j] * buffer[j + i];
+    let r1 = 0, r2 = SIZE - 1, threshold = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) {
+        if (Math.abs(buffer[i]) < threshold) {
+            r1 = i;
+            break;
+        }
     }
-}
 
-let d = 0;
-while (c[d] > c[d + 1]) {
-    d++;
-}
-
-let maxval = -1, maxpos = -1;
-for (let i = d; i < SIZE; i++) {
-    if (c[i] > maxval) {
-        maxval = c[i];
-        maxpos = i;
+    for (let i = 1; i < SIZE / 2; i++) {
+        if (Math.abs(buffer[SIZE - i]) < threshold) {
+            r2 = SIZE - i;
+            break;
+        }
     }
-}
 
-let T0 = maxpos;
-const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-const a = (x1 + x3 - 2 * x2) / 2;
-const b = (x3 - x1) / 2;
-if (a) {
-    T0 = T0 - b / (2 * a);
-}
+    buffer = buffer.subarray(r1, r2);
+    SIZE = buffer.length;
 
-return sampleRate / T0;
+    const c = new Array(SIZE).fill(0);
+    for (let i = 0; i < SIZE; i++) {
+        for (let j = 0; j < SIZE - i; j++) {
+            c[i] = c[i] + buffer[j] * buffer[j + i];
+        }
+    }
+
+    let d = 0;
+    while (c[d] > c[d + 1]) {
+        d++;
+    }
+
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < SIZE; i++) {
+        if (c[i] > maxval) {
+            maxval = c[i];
+            maxpos = i;
+        }
+    }
+
+    let T0 = maxpos;
+    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) {
+        T0 = T0 - b / (2 * a);
+    }
+
+    return sampleRate / T0;
 }
 
 document.getElementById('startTuner').addEventListener('click', () => {
-const startButton = document.getElementById('startTuner');
-if (startButton.textContent === 'Afinar') {
-    startTuner();
-    startButton.textContent = 'Parar';
-} else {
-    stopTuner();
-    startButton.textContent = 'Afinar';
-}
+    const startButton = document.getElementById('startTuner');
+    if (startButton.textContent === 'Afinar') {
+        startTuner();
+        startButton.textContent = 'Parar';
+    } else {
+        stopTuner();
+        startButton.textContent = 'Afinar';
+    }
 });
 
-document.getElementById('tuning-select').addEventListener('change', function() {
-selectedTuning = this.value;
-console.log(`Afinação selecionada: ${selectedTuning}`);
+document.getElementById('tuning-select').addEventListener('change', function () {
+    selectedTuning = this.value;
+    console.log(`Afinação selecionada: ${selectedTuning}`);
 });
 
 // --- Gravação ---
@@ -1443,51 +1525,51 @@ let recorder;
 let recording = false;
 
 function initializeRecorder() {
-if (ampNode && ampNode.context === Tone.getContext()) {
-  recorder = new Tone.Recorder();
-  ampNode.connect(recorder);
-} else {
-  console.error('Não foi possível conectar ampNode ao gravador.');
-}
+    if (ampNode && ampNode.context === Tone.getContext()) {
+        recorder = new Tone.Recorder();
+        ampNode.connect(recorder);
+    } else {
+        console.error('Não foi possível conectar ampNode ao gravador.');
+    }
 }
 
 document.getElementById('recordBtn').addEventListener('click', async () => {
-if (!recording) {
-    if (!recorder) {
-        initializeRecorder();
+    if (!recording) {
+        if (!recorder) {
+            initializeRecorder();
+        }
+        try {
+            await Tone.start(); // Certifica-se de que o contexto de áudio está pronto
+            recorder.start();
+            recording = true;
+            document.getElementById('recordBtn').textContent = 'Parar Gravação';
+        } catch (err) {
+            console.error('Erro ao iniciar a gravação:', err);
+        }
+    } else {
+        stopRecording();
     }
-    try {
-        await Tone.start(); // Certifica-se de que o contexto de áudio está pronto
-        recorder.start();
-        recording = true;
-        document.getElementById('recordBtn').textContent = 'Parar Gravação';
-    } catch (err) {
-        console.error('Erro ao iniciar a gravação:', err);
-    }
-} else {
-    stopRecording();
-}
 });
 
 async function stopRecording() {
-if (recording && recorder) {
-  recording = false;
-  document.getElementById('recordBtn').textContent = 'Gravar';
+    if (recording && recorder) {
+        recording = false;
+        document.getElementById('recordBtn').textContent = 'Gravar';
 
-  try {
-    const recording = await recorder.stop();
-    const url = URL.createObjectURL(recording);
+        try {
+            const recording = await recorder.stop();
+            const url = URL.createObjectURL(recording);
 
-    // Atualiza o link de download e o torna visível
-    const downloadLink = document.getElementById('downloadLink');
-    downloadLink.href = url;
-    downloadLink.download = 'recording.mp3';
-    downloadLink.style.display = 'block';
+            // Atualiza o link de download e o torna visível
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url;
+            downloadLink.download = 'recording.mp3';
+            downloadLink.style.display = 'block';
 
-  } catch (err) {
-    console.error('Erro ao parar a gravação:', err);
-  }
-}
+        } catch (err) {
+            console.error('Erro ao parar a gravação:', err);
+        }
+    }
 }
 
 document.getElementById('stopBtn').addEventListener('click', stopRecording);
@@ -1495,117 +1577,117 @@ document.getElementById('stopBtn').addEventListener('click', stopRecording);
 // --- Inicialização ---
 
 document.addEventListener('DOMContentLoaded', () => {
-const initAudioButton = document.getElementById('init-audio');
-initAudioButton.addEventListener('click', initAudio);
+    const initAudioButton = document.getElementById('init-audio');
+    initAudioButton.addEventListener('click', initAudio);
 });
 
 
 function disconnectPedal(pedalId) {
-    const pedal = availablePedals.find(p => p.id === pedalId);
-    if (!pedal) return;
+    const pedal = availablePedals.find(p => p.id === pedalId);
+    if (!pedal) return;
 
-    // Desconecta todos os nós associados ao pedal
-    for (const nodeName in pedal.nodes) {
-        const node = pedal.nodes[nodeName];
-        if (node && typeof node.disconnect === 'function') {
-            node.disconnect();
-        }
-    }
+    // Desconecta todos os nós associados ao pedal
+    for (const nodeName in pedal.nodes) {
+        const node = pedal.nodes[nodeName];
+        if (node && typeof node.disconnect === 'function') {
+            node.disconnect();
+        }
+    }
 
-    // Opcional: Redefinir os nós para um estado padrão ou vazio
-    pedal.nodes = {};
+    // Opcional: Redefinir os nós para um estado padrão ou vazio
+    pedal.nodes = {};
 
-    // Reconecta a entrada ao amplificador, se não houver mais pedais ativos
-    if (selectedPedals.length === 0) {
-        inputNode.connect(ampNode);
-    } else {
-        // Se ainda houver pedais ativos, reconecta-os
-        connectPedalsToInputOutput();
-    }
+    // Reconecta a entrada ao amplificador, se não houver mais pedais ativos
+    if (selectedPedals.length === 0) {
+        inputNode.connect(ampNode);
+    } else {
+        // Se ainda houver pedais ativos, reconecta-os
+        connectPedalsToInputOutput();
+    }
 }
 
 // Função modificada para conectar pedais em série
 function connectPedalsToInputOutput() {
-    // Desconecta a entrada de qualquer nó anterior
-    inputNode.disconnect();
+    // Desconecta a entrada de qualquer nó anterior
+    inputNode.disconnect();
 
-    // Desconecta a saída do último pedal, se existir, do amplificador
-    if (selectedPedals.length > 0) {
-        const lastPedalId = selectedPedals[selectedPedals.length - 1];
-        const lastPedal = availablePedals.find(p => p.id === lastPedalId);
-        const lastNodeKey = Object.keys(lastPedal.nodes)[Object.keys(lastPedal.nodes).length - 1];
-        lastPedal.nodes[lastNodeKey].disconnect();
-    }
+    // Desconecta a saída do último pedal, se existir, do amplificador
+    if (selectedPedals.length > 0) {
+        const lastPedalId = selectedPedals[selectedPedals.length - 1];
+        const lastPedal = availablePedals.find(p => p.id === lastPedalId);
+        const lastNodeKey = Object.keys(lastPedal.nodes)[Object.keys(lastPedal.nodes).length - 1];
+        lastPedal.nodes[lastNodeKey].disconnect();
+    }
 
-    // Conecta a entrada ao primeiro pedal
-    if (selectedPedals.length > 0) {
-        const firstPedalId = selectedPedals[0];
-        const firstPedal = availablePedals.find(p => p.id === firstPedalId);
-        inputNode.connect(firstPedal.nodes[Object.keys(firstPedal.nodes)[0]]);
+    // Conecta a entrada ao primeiro pedal
+    if (selectedPedals.length > 0) {
+        const firstPedalId = selectedPedals[0];
+        const firstPedal = availablePedals.find(p => p.id === firstPedalId);
+        inputNode.connect(firstPedal.nodes[Object.keys(firstPedal.nodes)[0]]);
 
-        // Conecta os pedais em série
-        for (let i = 0; i < selectedPedals.length - 1; i++) {
-            const currentPedal = availablePedals.find(p => p.id === selectedPedals[i]);
-            const nextPedal = availablePedals.find(p => p.id === selectedPedals[i + 1]);
-            const lastNodeKey = Object.keys(currentPedal.nodes)[Object.keys(currentPedal.nodes).length - 1];
-            const firstNodeKey = Object.keys(nextPedal.nodes)[0];
-            currentPedal.nodes[lastNodeKey].connect(nextPedal.nodes[firstNodeKey]);
-        }
+        // Conecta os pedais em série
+        for (let i = 0; i < selectedPedals.length - 1; i++) {
+            const currentPedal = availablePedals.find(p => p.id === selectedPedals[i]);
+            const nextPedal = availablePedals.find(p => p.id === selectedPedals[i + 1]);
+            const lastNodeKey = Object.keys(currentPedal.nodes)[Object.keys(currentPedal.nodes).length - 1];
+            const firstNodeKey = Object.keys(nextPedal.nodes)[0];
+            currentPedal.nodes[lastNodeKey].connect(nextPedal.nodes[firstNodeKey]);
+        }
 
-        // Conecta o último pedal ao amplificador
-        const lastPedalId = selectedPedals[selectedPedals.length - 1];
-        const lastPedal = availablePedals.find(p => p.id === lastPedalId);
-        const lastNodeKey = Object.keys(lastPedal.nodes)[Object.keys(lastPedal.nodes).length - 1];
-        lastPedal.nodes[lastNodeKey].connect(ampNode);
-    } else {
-        // Se não houver pedais selecionados, conecta a entrada diretamente ao amplificador
-        inputNode.connect(ampNode);
-    }
+        // Conecta o último pedal ao amplificador
+        const lastPedalId = selectedPedals[selectedPedals.length - 1];
+        const lastPedal = availablePedals.find(p => p.id === lastPedalId);
+        const lastNodeKey = Object.keys(lastPedal.nodes)[Object.keys(lastPedal.nodes).length - 1];
+        lastPedal.nodes[lastNodeKey].connect(ampNode);
+    } else {
+        // Se não houver pedais selecionados, conecta a entrada diretamente ao amplificador
+        inputNode.connect(ampNode);
+    }
 }
 
 // Modifique a função togglePedalOnBoard para chamar connectPedalsToInputOutput
 function togglePedalOnBoard(pedalId) {
-    const pedalIndex = selectedPedals.indexOf(pedalId);
-    if (pedalIndex > -1) {
-        selectedPedals.splice(pedalIndex, 1);
-        removePedalFromBoard(pedalId);
-    } else if (selectedPedals.length < maxPedals) {
-        selectedPedals.push(pedalId);
-        addPedalToBoard(pedalId);
-    } else {
-        alert(`Você pode adicionar no máximo ${maxPedals} pedais ao seu pedalboard.`);
-    }
-    connectPedalsToInputOutput(); // Reconecta os pedais sempre que um pedal é adicionado ou removido
+    const pedalIndex = selectedPedals.indexOf(pedalId);
+    if (pedalIndex > -1) {
+        selectedPedals.splice(pedalIndex, 1);
+        removePedalFromBoard(pedalId);
+    } else if (selectedPedals.length < maxPedals) {
+        selectedPedals.push(pedalId);
+        addPedalToBoard(pedalId);
+    } else {
+        alert(`Você pode adicionar no máximo ${maxPedals} pedais ao seu pedalboard.`);
+    }
+    connectPedalsToInputOutput(); // Reconecta os pedais sempre que um pedal é adicionado ou removido
 }
 
 // --- Funções Auxiliares ---
 
 function getAudioContext() {
-    return audioContext;
+    return audioContext;
 }
 
 function getInputNode() {
-    return inputNode;
+    return inputNode;
 }
 
 function getOutputNode() {
-    return outputNode;
+    return outputNode;
 }
 
 function getAmpNode() {
-    return ampNode;
+    return ampNode;
 }
 
 function setAmpNode(newAmpNode) {
-    ampNode = newAmpNode;
+    ampNode = newAmpNode;
 }
 
 function getSelectedPedals() {
-    return selectedPedals;
+    return selectedPedals;
 }
 
 function getAvailablePedals() {
-    return availablePedals;
+    return availablePedals;
 }
 
 // --- Inicialização ---
