@@ -394,7 +394,8 @@
   
   .pedalboard-container {
     display: flex;
-    justify-content: flex-start;
+    flex-wrap: wrap;
+    justify-content: start;
     gap: 10px;
     background-color: #e0e0e0;
     border: 3px solid #666;
@@ -476,3 +477,111 @@
         max-width: 100%;
       }
     }
+    
+  /* Estilos para o botão */
+  .pedal button {
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #000; /* Cor do texto do botão */
+    background-color: #9eff9e; /* Cor de fundo do botão */
+    border: none;
+    border-radius: 5px; /* Bordas arredondadas */
+    cursor: pointer; /* Cursor em forma de mão */
+    transition: background-color 0.3s ease; /* Transição suave para a cor de fundo */
+  }
+  
+  /* Estilos para o botão quando estiver ativo (ligado) */
+  .pedal.active button {
+    background-color: #ff0000; /* Cor de fundo para o botão ativo */
+    color: #fff; /* Cor do texto para o botão ativo */
+  }
+  
+  /* Estilos para o botão ao passar o mouse */
+  .pedal button:hover {
+    background-color: #ddd; /* Cor de fundo mais clara ao passar o mouse */
+  }
+  
+  /* Estilos para o botão ativo ao passar o mouse */
+  .pedal.active button:hover {
+    background-color: #cc0000; /* Cor de fundo mais escura para o botão ativo no hover */
+  }
+  /* Estilos para os controles deslizantes (input type="range") nos pedais */
+  .pedal .controls input[type="range"] {
+    -webkit-appearance: none; /* Remove a aparência padrão no Chrome/Safari */
+    appearance: none;
+    width: 100%; /* Largura total disponível */
+    height: 5px;
+    background: #9eff9e; /* Cor de fundo para a barra do controle deslizante */
+    outline: none; /* Remove a borda de foco */
+    opacity: 0.7; /* Opacidade para a barra do controle deslizante */
+    -webkit-transition: .2s; /* Transição suave para a opacidade no hover */
+    transition: opacity .2s;
+    margin-top: 5px;
+  }
+  
+  /* Estilos para o 'thumb' (parte móvel) dos controles deslizantes nos pedais */
+  .pedal .controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #000; /* Cor do 'thumb' (preto) */
+    cursor: pointer;
+    border-radius: 50%; /* Borda arredondada para o 'thumb' */
+  }
+  
+  /* Estilos para o 'thumb' dos controles deslizantes no Firefox */
+.pedal .controls input[type="range"]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    background: #000; /* Cor do 'thumb' (preto) */
+    cursor: pointer;
+    border-radius: 50%; /* Borda arredondada para o 'thumb' */
+  }
+  
+  /* Estilos para os rótulos dos controles nos pedais */
+  .pedal .controls label {
+    color: #000; /* Cor do texto para os rótulos */
+    margin-top: 5px;
+    display: block; /* Faz com que cada rótulo fique em uma nova linha */
+  }
+  
+  /* Estilos para os seletores (select) nos pedais */
+  .pedal .controls select {
+    padding: 5px;
+    border: 1px solid #000; /* Borda preta */
+    border-radius: 4px;
+    background-color: #fff; /* Cor de fundo branca */
+    color: #000; /* Cor do texto preta */
+    margin-top: 5px;
+    width: 80%; /* Ajusta a largura conforme necessário */
+  }
+  
+  /* Estilos para as opções dos seletores nos pedais */
+  .pedal .controls select option {
+    background-color: #fff; /* Cor de fundo branca para as opções */
+    color: #000; /* Cor do texto preta para as opções */
+  }
+  /* Estilos para o botão de alternância */
+  .pedal .toggle-button {
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #fff;
+    background-color: #007bff; /* Cor de fundo azul */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .pedal .toggle-button:hover {
+    background-color: #0056b3; /* Cor de fundo mais escura no hover */
+  }
+  
+  .pedal.active .toggle-button {
+    background-color: #dc3545; /* Cor de fundo vermelha quando o pedal está ativo */
+  }
+  
+  .pedal.active .toggle-button:hover {
+    background-color: #c82333; /* Cor de fundo mais escura no hover quando ativo */
+  }
