@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Pedais de Guitarra</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nova+Square&display=swap">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script> </head>
+<body>
+    <header>
+        <img src="img/Captura de tela 2024-10-09 234755.png" alt="Logo" class="logo">
+        <nav>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#assine-ja">Assine Já</a></li>
+                <li><a href="#tutorial">Tutorial</a></li>
+                <li><a href="#quem-somos">Quem Somos</a></li>
+            </ul>
+        </nav>
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+    </header>
+
+    <main>
+      <button id="init-audio">Iniciar Áudio</button>
+        <section id="audio-setup">
+            <div class="audio-controls">
+              <label for="audio-input-select">Entrada de Áudio:</label>
+              <select id="audio-input-select"></select>
+            </div>
+            <div class="audio-controls">
+              <label for="input-volume">Volume de Entrada:</label>
+              <input type="range" id="input-volume" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <div class="audio-controls">
+              <label for="audio-output-select">Saída de Áudio:</label>
+              <select id="audio-output-select"></select>
+            </div>
+            <div class="audio-controls">
+              <label for="output-volume">Volume de Saída:</label>
+              <input type="range" id="output-volume" min="0" max="1" step="0.01" value="0.5">
+            </div>
+          </section>
+
+          <section id="my-pedalboard">
+            <h1 class="titulo-pedais">Meu Set de Pedais</h1>
+            <div class="pedalboard-container" id="pedalboard-container">
+                </div>
+        </section>
+
+        <h1 class="titulo-pedais">Seu Set de Pedais de Guitarra</h1>
+        <section id="pedais">
+            <div class="pedal-container" id="available-pedals">
+                </div>
+        </section>
+
+        <section id="amplificadores">
+            <h1 class="titulo-amps">Escolha seu Amplificador Favorito!!!</h1>
+            <div id="amp-container">
+                <label for="amp-select">Amplificador:</label>
+                <select id="amp-select">
+                  <option value="jcm900">JCM900</option>
+                  <option value="jcm800">JCM800</option>
+                  <option value="fender">Champion 100</option>
+                  <option value="mesa">Mark V 35</option>
+                  <option value="randall">RX 120 RHE</option>
+                  <option value="engl">Powerball II E645/2 Head 100W</option>
+                </select>
+                <div class="amp-controls">
+                    </div>
+              </div>
+        </section>
+
+        <section id="ferramentas">
+            <div class="menu-gravacao">
+                <button id="recordBtn">Gravar</button>
+                <button id="stopBtn">Parar</button>
+                <a id="downloadLink" style="display: none">Download</a>
+            </div>
+            <div id="metronome">
+                <h3>Metrônomo</h3>
+                <input type="number" id="bpm" min="40" max="240" value="120">
+                <button id="startMetronome">▶️</button>
+            </div>
+            <div id="tuner">
+                <h3>Afinador</h3>
+                <select id="tuning-select">
+                    <option value="EADGBE">E A D G B E (Standard)</option>
+                    <option value="D#G#C#F#A#D#">D# G# C# F# A# D# (Eb Standard)</option>
+                    <option value="C#G#C#F#A#D#">C# G# C# F# A# D# (Drop C#)</option>
+                    <option value="DGCFAD">D G C F A D (Drop D)</option>
+                    <option value="CGCFAD">C G C F A D (Drop C)</option>
+                    <option value="C#F#BEG#C#">C# F# B E G# C# (Open C#)</option>
+                    <option value="BF#BEG#C#">B F# B E G# C# (Open B)</option>
+                </select>
+                <button id="startTuner">Afinar</button>
+                <div id="tuner-output"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <img src="img/Captura de tela 2024-10-09 234755.png" alt="Logo" class="logo">
+        <nav>
+            <ul class="footer-links">
+                <li><a href="#faq">FAQ</a></li>
+                <li><a href="#termos">Termos</a></li>
+                <li><a href="#fale-conosco">Fale Conosco</a></li>
+            </ul>
+        </nav>
+    </footer>
+
+    
+    <script src="script.js"></script>
+</body>
+</html>
